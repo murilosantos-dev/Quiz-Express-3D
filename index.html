@@ -370,6 +370,54 @@
             ]
         };
 
+        // --- SONS (Web Audio API, sem arquivos externos) ---
+        let audioCtx = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playTone(freq, startOffset, duration, type, volume) {
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const startTime = ctx.currentTime + startOffset;
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+
+            gain.gain.setValueAtTime(0.0001, startTime);
+            gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration + 0.05);
+        }
+
+        // Som de acerto: três notas subindo (alegre)
+        function playCorrectSound() {
+            playTone(523.25, 0.00, 0.15, 'sine', 0.25); // Dó
+            playTone(659.25, 0.10, 0.15, 'sine', 0.25); // Mi
+            playTone(783.99, 0.20, 0.30, 'sine', 0.25); // Sol
+        }
+
+        // Som de erro: duas notas descendo (grave)
+        function playWrongSound() {
+            playTone(220.00, 0.00, 0.20, 'sawtooth', 0.18);
+            playTone(155.56, 0.15, 0.35, 'sawtooth', 0.18);
+        }
+
         // --- GAME VARIABLES ---
         let playerName = "";
         let score = 0;
@@ -500,10 +548,15 @@
                 buttons[selectedIndex].classList.remove('bg-slate-800/90');
                 buttons[selectedIndex].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
                 
+                // Som de acerto
+                playCorrectSound();
+
                 // Trigger floating combo word with random position
                 triggerFloatingWord();
             } else {
                 combo = 0;
+                // Som de erro
+                playWrongSound();
                 buttons[selectedIndex].classList.remove('bg-slate-800/90');
                 buttons[selectedIndex].classList.add('bg-red-600', 'border-red-500', 'text-white');
                 buttons[currentQuestion.answer].classList.remove('bg-slate-800/90');
