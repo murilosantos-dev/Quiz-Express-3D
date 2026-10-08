@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Express 3D</title>
+    <link rel="icon" type="image/png" href="image-removebg-preview.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            user-select: none;
+        }
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        .arcade-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        @keyframes floatRandom {
+            0% { transform: translateY(0px) scale(0.8) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; transform: translateY(-30px) scale(1.2) rotate(-5deg); }
+            80% { opacity: 1; transform: translateY(-120px) scale(1) rotate(5deg); }
+            100% { transform: translateY(-180px) scale(0.9) rotate(0deg); opacity: 0; }
+        }
+        .combo-floating-text {
+            position: absolute;
+            animation: floatRandom 3s ease-out forwards;
+            pointer-events: none;
+            font-weight: 700;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.6);
+            z-index: 50;
+        }
+        .glow-title {
+            text-shadow: 0 0 15px rgba(236, 72, 153, 0.8), 0 0 30px rgba(59, 130, 246, 0.8);
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Three.js Background Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Container -->
+    <div class="ui-layer w-screen h-screen flex flex-col justify-between p-6 overflow-y-auto">
+        
+        <!-- TOP BAR / HEADER -->
+        <header class="flex justify-between items-center w-full max-w-6xl mx-auto py-2">
+            <div id="game-title-container" class="text-center md:text-left">
+                <h1 class="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400 glow-title uppercase tracking-wider">
+                    Quiz Express 3D
+                </h1>
+                <p id="creator-tag" class="text-xs md:text-sm font-bold mt-1 uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-green-400 animate-pulse">
+                    Feito por Murilo Marques - Desenvolvimento de Sistemas
+                </p>
+            </div>
+            
+            <div id="stats-bar" class="hidden flex gap-4 items-center">
+                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3">
+                    <span class="text-sm text-slate-400">Tempo:</span>
+                    <span id="timer-display" class="text-xl font-bold text-cyan-400">60s</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3">
+                    <span class="text-sm text-slate-400">Pontos:</span>
+                    <span id="score-display" class="text-xl font-bold text-pink-400">0</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3">
+                    <span class="text-sm text-slate-400">Combo:</span>
+                    <span id="combo-display" class="text-xl font-bold text-yellow-400">0x</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-grow flex items-center justify-center py-4">
+            
+            <!-- INITIAL MENU SCREEN -->
+            <div id="menu-screen" class="interactive flex flex-col items-center gap-5 bg-slate-900/85 border border-slate-700 p-6 rounded-3xl backdrop-blur-xl shadow-2xl max-w-md w-full text-center my-auto">
+                <h2 class="text-2xl font-bold text-slate-200">Pronto para o Desafio?</h2>
+                <p class="text-xs text-slate-400">Quiz Express 3D - Modo Infinito</p>
+                
+                <div class="w-full space-y-1 text-left">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Seu Nome / Apelido:</label>
+                    <input type="text" id="player-name" placeholder="Digite seu nome..." class="w-full px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-xl focus:outline-none focus:border-cyan-400 text-white placeholder-slate-500 font-medium text-sm">
+                </div>
+
+                <!-- Difficulty Selector Restored -->
+                <div class="w-full space-y-1 text-left">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Escolha o Nível:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="selectDifficulty('facil', this)" class="interactive py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold text-emerald-400 transition diff-btn">Fácil</button>
+                        <button onclick="selectDifficulty('medio', this)" class="interactive py-2 bg-cyan-600/30 border border-cyan-400 rounded-xl text-xs font-bold text-cyan-300 transition diff-btn active-diff">Médio</button>
+                        <button onclick="selectDifficulty('dificil', this)" class="interactive py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold text-red-400 transition diff-btn">Difícil</button>
+                    </div>
+                </div>
+
+                <!-- Theme Color Selector -->
+                <div class="w-full space-y-1 text-left">
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Cor do Tema 3D:</label>
+                    <div class="flex justify-between gap-2">
+                        <button onclick="changeThemeColor(0x3b82f6, this)" class="w-8 h-8 rounded-full bg-blue-500 border-2 border-white ring-2 ring-blue-500/50 transition transform hover:scale-110 theme-btn"></button>
+                        <button onclick="changeThemeColor(0xec4899, this)" class="w-8 h-8 rounded-full bg-pink-500 border-2 border-transparent transition transform hover:scale-110 theme-btn"></button>
+                        <button onclick="changeThemeColor(0x10b981, this)" class="w-8 h-8 rounded-full bg-emerald-500 border-2 border-transparent transition transform hover:scale-110 theme-btn"></button>
+                        <button onclick="changeThemeColor(0xf59e0b, this)" class="w-8 h-8 rounded-full bg-amber-500 border-2 border-transparent transition transform hover:scale-110 theme-btn"></button>
+                        <button onclick="changeThemeColor(0x8b5cf6, this)" class="w-8 h-8 rounded-full bg-purple-500 border-2 border-transparent transition transform hover:scale-110 theme-btn"></button>
+                        <button onclick="changeThemeColor(0xef4444, this)" class="w-8 h-8 rounded-full bg-red-500 border-2 border-transparent transition transform hover:scale-110 theme-btn"></button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2.5 w-full mt-1">
+                    <button onclick="startGame()" class="interactive w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0 text-sm">
+                        INICIAR JOGO
+                    </button>
+                    <button onclick="openLeaderboard()" class="interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl border border-slate-600 transition text-sm">
+                        RANKING GLOBAL
+                    </button>
+                    <button onclick="exitGame()" class="interactive w-full py-2.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 font-semibold rounded-xl border border-red-500/30 transition text-sm">
+                        SAIR DO JOGO
+                    </button>
+                </div>
+            </div>
+
+            <!-- QUIZ GAME SCREEN -->
+            <div id="quiz-screen" class="hidden interactive flex flex-col items-center gap-6 bg-slate-900/85 border border-slate-700 p-8 rounded-3xl backdrop-blur-xl shadow-2xl max-w-xl w-full">
+                <div class="flex justify-between w-full items-center">
+                    <span id="question-theme-tag" class="px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full uppercase tracking-wider">Tema</span>
+                    <span id="difficulty-badge" class="px-3 py-1 bg-purple-500/20 border border-purple-500/40 text-purple-300 text-xs font-bold rounded-full uppercase tracking-widest">Nível Médio</span>
+                </div>
+
+                <h3 id="question-text" class="text-xl md:text-2xl font-bold text-center text-slate-100 min-h-[80px] flex items-center justify-center">
+                    Carregando pergunta...
+                </h3>
+
+                <div id="options-container" class="grid grid-cols-1 gap-3 w-full">
+                    <!-- Dynamic Options -->
+                </div>
+            </div>
+
+            <!-- LEADERBOARD SCREEN -->
+            <div id="leaderboard-screen" class="hidden interactive flex flex-col items-center gap-6 bg-slate-900/90 border border-slate-700 p-8 rounded-3xl backdrop-blur-xl shadow-2xl max-w-md w-full text-center">
+                <h2 class="text-2xl font-bold text-cyan-400">Ranking Global Online</h2>
+                <div id="leaderboard-list" class="w-full space-y-2 max-h-60 overflow-y-auto pr-2">
+                    <p class="text-slate-400 text-sm">Carregando placar...</p>
+                </div>
+                <div class="flex flex-col gap-2 w-full mt-2">
+                    <button onclick="resetLeaderboard()" class="interactive w-full py-3 bg-red-600/20 hover:bg-red-600/40 text-red-400 font-semibold rounded-xl border border-red-500/30 transition">
+                        Zerar o Ranking
+                    </button>
+                    <button onclick="closeLeaderboard()" class="interactive w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-600 transition">
+                        Voltar ao Menu
+                    </button>
+                </div>
+            </div>
+
+            <!-- GAME OVER / FINAL SCREEN -->
+            <div id="game-over-screen" class="hidden interactive flex flex-col items-center gap-6 bg-slate-900/90 border border-slate-700 p-8 rounded-3xl backdrop-blur-xl shadow-2xl max-w-md w-full text-center">
+                <h2 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-cyan-400">Fim de Jogo!</h2>
+                <p id="final-score-message" class="text-lg font-medium text-slate-200">Parabéns seus pontos acumulados foi X</p>
+                
+                <div class="flex flex-col gap-3 w-full mt-4">
+                    <button onclick="restartGame()" class="interactive w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg transition">
+                        JOGAR NOVAMENTE
+                    </button>
+                    <button onclick="returnToMenu()" class="interactive w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl border border-slate-600 transition">
+                        MENU PRINCIPAL
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER INFO -->
+        <footer class="text-center text-xs text-slate-500 py-1">
+            Quiz Express 3D &bull; Feito por Murilo Marques &bull; Desenvolvimento de Sistemas
+        </footer>
+    </div>
+
+    <!-- FLOATING COMBO CONTAINER -->
+    <div id="floating-words-container" class="fixed inset-0 pointer-events-none z-50 overflow-hidden"></div>
+
+    <script>
+        // --- THREE.JS 3D BACKGROUND ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // 3D Objects (Floating Geometric Shapes)
+        const geometries = [
+            new THREE.BoxGeometry(1.2, 1.2, 1.2),
+            new THREE.SphereGeometry(0.8, 32, 32),
+            new THREE.ConeGeometry(0.8, 1.5, 32),
+            new THREE.DodecahedronGeometry(0.9)
+        ];
+
+        let currentThemeColorHex = 0x3b82f6;
+        const material = new THREE.MeshStandardMaterial({
+            color: currentThemeColorHex,
+            roughness: 0.3,
+            metalness: 0.8,
+            wireframe: false
+        });
+
+        const shapes = [];
+        for (let i = 0; i < 35; i++) {
+            const geom = geometries[Math.floor(Math.random() * geometries.length)];
+            const mesh = new THREE.Mesh(geom, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 35,
+                (Math.random() - 0.5) * 35,
+                (Math.random() - 0.5) * 35 - 10
+            );
+            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+            mesh.userData = {
+                rotSpeedX: (Math.random() - 0.5) * 0.01,
+                rotSpeedY: (Math.random() - 0.5) * 0.01,
+                floatSpeed: Math.random() * 0.02 + 0.01
+            };
+            scene.add(mesh);
+            shapes.push(mesh);
+        }
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 2);
+        pointLight.position.set(10, 15, 10);
+        scene.add(pointLight);
+
+        camera.position.z = 15;
+
+        // Animation Loop
+        function animateScene() {
+            requestAnimationFrame(animateScene);
+            shapes.forEach(shape => {
+                shape.rotation.x += shape.userData.rotSpeedX;
+                shape.rotation.y += shape.userData.rotSpeedY;
+                shape.position.y += Math.sin(Date.now() * 0.002 * shape.userData.floatSpeed) * 0.01;
+            });
+            renderer.render(scene, camera);
+        }
+        animateScene();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- THEME COLOR SELECTION ---
+        function changeThemeColor(colorHex, btnElement) {
+            currentThemeColorHex = colorHex;
+            material.color.setHex(colorHex);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.classList.remove('border-white', 'ring-2', 'ring-blue-500/50');
+                b.classList.add('border-transparent');
+            });
+            btnElement.classList.remove('border-transparent');
+            btnElement.classList.add('border-white', 'ring-2', 'ring-blue-500/50');
+        }
+
+        // --- DIFFICULTY SELECTION ---
+        let selectedDifficulty = 'medio';
+        function selectDifficulty(diff, btnElement) {
+            selectedDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(b => {
+                b.className = "interactive py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold transition diff-btn text-slate-300";
+            });
+            if (diff === 'facil') {
+                btnElement.className = "interactive py-2 bg-emerald-600/30 border border-emerald-400 rounded-xl text-xs font-bold text-emerald-300 transition diff-btn";
+            } else if (diff === 'medio') {
+                btnElement.className = "interactive py-2 bg-cyan-600/30 border border-cyan-400 rounded-xl text-xs font-bold text-cyan-300 transition diff-btn";
+            } else {
+                btnElement.className = "interactive py-2 bg-red-600/30 border border-red-400 rounded-xl text-xs font-bold text-red-300 transition diff-btn";
+            }
+        }
+
+        // --- GAME DATA & QUESTIONS (General, Cultural, Themes + DS HTML/CSS) ---
+        const questionBank = {
+            facil: [
+                { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de futebol em campo por time?", options: ["7", "9", "11", "12"], answer: 2 },
+                { theme: "Filmes / Séries", q: "Na animação 'Toy Story', qual é o nome do caubói que é o brinquedo favorito do Andy?", options: ["Buzz Lightyear", "Woody", "Rex", "Slinky"], answer: 1 },
+                { theme: "Jogos", q: "Qual personagem mascote da Nintendo veste macacão vermelho e resgata a Princesa Peach?", options: ["Sonic", "Luigi", "Mario", "Link"], answer: 2 },
+                { theme: "Países", q: "Em qual país está localizada a famosa torre Eiffel?", options: ["Itália", "França", "Espanha", "Reino Unido"], answer: 1 },
+                { theme: "Comida", q: "Qual país é o berço tradicional da massa de pizza?", options: ["Itália", "México", "Japão", "Brasil"], answer: 0 },
+                { theme: "Matemática", q: "Quanto é 10 mais 15?", options: ["20", "25", "30", "35"], answer: 1 },
+                { theme: "História", q: "Em que ano ocorreu a proclamação da Independência do Brasil?", options: ["1500", "1822", "1889", "1930"], answer: 1 },
+                { theme: "Desenhos", q: "Qual é o nome da esponja amarela que mora num abacaxi sob o mar?", options: ["Patrick", "Lula Molusco", "Bob Esponja", "Sr. Sirigueijo"], answer: 2 },
+                { theme: "Músicas", q: "Qual instrumento de teclas e cordas internas é muito comum em concertos?", options: ["Violão", "Piano", "Flauta", "Bateria"], answer: 1 },
+                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML cria um link ou hiperlink?", options: ["<link>", "<a>", "<href>", "<url>"], answer: 1 }
+            ],
+            medio: [
+                { theme: "Esportes", q: "Qual país conquistou o pentacampeonato mundial de futebol em 2002?", options: ["Alemanha", "Brasil", "Itália", "França"], answer: 1 },
+                { theme: "Filmes / Séries", q: "Na série 'Stranger Things', qual é o nome da cidade fictícia dos eventos misteriosos?", options: ["Gotham", "Hawkins", "Riverdale", "Springfield"], answer: 1 },
+                { theme: "Jogos", q: "Qual jogo sandbox de blocos mundialmente famoso foi criado por Markus 'Notch' Persson?", options: ["Minecraft", "Roblox", "Terraria", "Fortnite"], answer: 0 },
+                { theme: "Países", q: "Qual é o maior país do mundo em extensão territorial?", options: ["Canadá", "China", "Estados Unidos", "Rússia"], answer: 3 },
+                { theme: "Comida", q: "Qual ingrediente principal compõe a tradicional culinária japonesa chamada Sushi?", options: ["Batata frita", "Arroz e peixe cru", "Massa de trigo", "Feijão preto"], answer: 1 },
+                { theme: "Matemática", q: "Qual é o valor da raiz quadrada exata de 144?", options: ["10", "12", "14", "16"], answer: 1 },
+                { theme: "História", q: "Qual império antigo construiu a imensa estrutura defensiva chamada Grande Muralha?", options: ["Império Romano", "Império Persa", "Império Chinês", "Império Grego"], answer: 2 },
+                { theme: "Desenhos", q: "Em 'Os Simpsons', qual é o nome da caçula da família que chupa chupeta?", options: ["Bart", "Lisa", "Maggie", "Marge"], answer: 2 },
+                { theme: "Músicas", q: "Qual banda britânica gravou o sucesso mundial 'Bohemian Rhapsody'?", options: ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"], answer: 1 },
+                { theme: "Desenvolvimento de Sistemas", q: "Em CSS, qual propriedade altera a cor de fundo de um elemento?", options: ["color", "font-color", "background-color", "bg-style"], answer: 2 }
+            ],
+            dificil: [
+                { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de basquete em quadra por time?", options: ["5", "6", "7", "11"], answer: 0 },
+                { theme: "Filmes / Séries", q: "Qual o nome do vilão cibernético mascarado e pai de Luke Skywalker em Star Wars?", options: ["Han Solo", "Voldemort", "Darth Vader", "Thanos"], answer: 2 },
+                { theme: "Jogos", q: "Em qual jogo da franquia Zelda o Link viaja no tempo através da Ocarina of Time?", options: ["Breath of the Wild", "Ocarina of Time", "Majora's Mask", "Twilight Princess"], answer: 1 },
+                { theme: "Países", q: "Qual é a capital da Austrália, frequentemente confundida com Sydney ou Melbourne?", options: ["Sydney", "Melbourne", "Canberra", "Brisbane"], answer: 2 },
+                { theme: "Comida", q: "De qual país é originário o prato tradicional chamado Paella?", options: ["México", "Espanha", "Portugal", "Argentina"], answer: 1 },
+                { theme: "Matemática", q: "Quanto é 15% de 200?", options: ["20", "25", "30", "35"], answer: 2 },
+                { theme: "História", q: "Em que ano teve início a Revolução Francesa com a queda da Bastilha?", options: ["1789", "1815", "1750", "1848"], answer: 0 },
+                { theme: "Desenhos", q: "Quem é o criador da clássica série animada 'Bob Esponja Calça Quadrada'?", options: ["Matt Groening", "Stephen Hillenburg", "Seth MacFarlane", "Craig McCracken"], answer: 1 },
+                { theme: "Músicas", q: "Qual instrumento de cordas possui quatro cordas tradicionais e é essencial em orquestras clássicas?", options: ["Violino", "Guitarra elétrica", "Piano", "Flauta"], answer: 0 },
+                { theme: "Desenvolvimento de Sistemas", q: "O que a sigla HTML significa corretamente no desenvolvimento web?", options: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyper Transfer Main Language", "Home Tool Multi Language"], answer: 0 }
+            ]
+        };
+
+        // --- GAME VARIABLES ---
+        let playerName = "";
+        let score = 0;
+        let combo = 0;
+        let timeLeft = 60;
+        let timerInterval = null;
+        let currentQuestion = null;
+        let usedQuestions = [];
+
+        // Combo feedback words
+        const comboWords = ["Incrível!", "Muito Bom!", "Perfeito!", "Show!", "Excelente!", "Mandou Bem!"];
+        const comboColors = ["#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
+
+        // --- NAVIGATION & SCREENS ---
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            playerName = nameInput !== "" ? nameInput : "Jogador Anônimo";
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('stats-bar').classList.remove('hidden');
+            document.getElementById('game-title-container').classList.add('scale-75', 'origin-left', 'transition-transform');
+
+            // Update difficulty badge on quiz screen
+            const diffBadge = document.getElementById('difficulty-badge');
+            if(selectedDifficulty === 'facil') {
+                diffBadge.innerText = "Nível Fácil";
+                diffBadge.className = "px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            } else if(selectedDifficulty === 'medio') {
+                diffBadge.innerText = "Nível Médio";
+                diffBadge.className = "px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            } else {
+                diffBadge.innerText = "Nível Difícil";
+                diffBadge.className = "px-3 py-1 bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            }
+
+            score = 0;
+            combo = 0;
+            timeLeft = 60;
+            usedQuestions = [];
+            updateStats();
+
+            startTimer();
+            loadNextQuestion();
+        }
+
+        function exitGame() {
+            if (confirm("Deseja realmente sair do jogo?")) {
+                window.location.reload();
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-display').innerText = timeLeft + 's';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function updateStats() {
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('combo-display').innerText = combo + 'x';
+        }
+
+        // --- QUIZ LOGIC ---
+        function loadNextQuestion() {
+            const currentBank = questionBank[selectedDifficulty];
+            if (usedQuestions.length >= currentBank.length) {
+                usedQuestions = []; // Reset if all answered
+            }
+
+            let available = currentBank.filter((_, idx) => !usedQuestions.includes(idx));
+            let randomIndexOriginal = Math.floor(Math.random() * available.length);
+            let questionObj = available[randomIndexOriginal];
+            let originalIndex = currentBank.indexOf(questionObj);
+            usedQuestions.push(originalIndex);
+
+            currentQuestion = questionObj;
+
+            document.getElementById('question-theme-tag').innerText = currentQuestion.theme;
+            document.getElementById('question-text').innerText = currentQuestion.q;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            currentQuestion.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "interactive w-full py-3 px-4 bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-medium rounded-xl border border-slate-700 transition transform hover:scale-[1.01] active:scale-[0.99] text-left flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span> <span class="text-xs text-slate-500 font-mono">0${idx+1}</span>`;
+                btn.onclick = () => checkAnswer(idx);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const optionsContainer = document.getElementById('options-container');
+            const buttons = optionsContainer.getElementsByTagName('button');
+
+            if (selectedIndex === currentQuestion.answer) {
+                combo++;
+                score += 10 + (combo * 2);
+                buttons[selectedIndex].classList.remove('bg-slate-800/90');
+                buttons[selectedIndex].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+                
+                // Trigger floating combo word with random position
+                triggerFloatingWord();
+            } else {
+                combo = 0;
+                buttons[selectedIndex].classList.remove('bg-slate-800/90');
+                buttons[selectedIndex].classList.add('bg-red-600', 'border-red-500', 'text-white');
+                buttons[currentQuestion.answer].classList.remove('bg-slate-800/90');
+                buttons[currentQuestion.answer].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+            }
+
+            updateStats();
+
+            // Disable all buttons temporarily
+            for (let btn of buttons) {
+                btn.disabled = true;
+            }
+
+            setTimeout(() => {
+                loadNextQuestion();
+            }, 1000);
+        }
+
+        // --- FLOATING WORDS ANIMATION ---
+        function triggerFloatingWord() {
+            const container = document.getElementById('floating-words-container');
+            const wordText = comboWords[Math.floor(Math.random() * comboWords.length)];
+            const colorHex = comboColors[Math.floor(Math.random() * comboColors.length)];
+
+            const el = document.createElement('div');
+            el.className = "combo-floating-text text-2xl md:text-4xl";
+            el.innerText = `${wordText} +${combo}x`;
+            el.style.color = colorHex;
+
+            // Random horizontal and vertical starting positions across the screen
+            const randomX = Math.random() * 70 + 15; // 15% to 85% width
+            const randomY = Math.random() * 40 + 30; // 30% to 70% height
+            el.style.left = `${randomX}%`;
+            el.style.top = `${randomY}%`;
+
+            container.appendChild(el);
+
+            // Remove after animation finishes (3 seconds)
+            setTimeout(() => {
+                el.remove();
+            }, 3000);
+        }
+
+        // --- END GAME & LEADERBOARD ---
+        function endGame() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('stats-bar').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+
+            document.getElementById('final-score-message').innerText = `Parabéns ${playerName}, seus pontos acumulados foi ${score}!`;
+
+            // Save to Online Global Leaderboard
+            saveScoreToLeaderboard(playerName, score);
+        }
+
+        function restartGame() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            startGame();
+        }
+
+        function returnToMenu() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('game-title-container').classList.remove('scale-75', 'origin-left');
+        }
+
+        function openLeaderboard() {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.remove('hidden');
+            fetchLeaderboard();
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        }
+
+        function resetLeaderboard() {
+            if (confirm("Tem certeza que deseja zerar todo o ranking salvo?")) {
+                localStorage.removeItem('quiz_express_scores');
+                fetchLeaderboard();
+            }
+        }
+
+        // --- JSONBIN GLOBAL LEADERBOARD INTEGRATION ---
+        async function fetchLeaderboard() {
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = '<p class="text-slate-400 text-sm">Carregando placar global...</p>';
+
+            try {
+                let scores = JSON.parse(localStorage.getItem('quiz_express_scores') || '[]');
+                scores.sort((a, b) => b.score - a.score);
+
+                if (scores.length === 0) {
+                    listEl.innerHTML = '<p class="text-slate-400 text-sm">Nenhum recorde salvo ainda. Seja o primeiro!</p>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                scores.slice(0, 5).forEach((item, index) => {
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-slate-800/80 px-4 py-3 rounded-xl border border-slate-700";
+                    row.innerHTML = `<span class="font-bold text-cyan-400">#${index+1} ${item.name}</span> <span class="font-mono font-bold text-pink-400">${item.score} pts</span>`;
+                    listEl.appendChild(row);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<p class="text-red-400 text-sm">Erro ao carregar o ranking.</p>';
+            }
+        }
+
+        function saveScoreToLeaderboard(name, finalScore) {
+            let scores = JSON.parse(localStorage.getItem('quiz_express_scores') || '[]');
+            scores.push({ name: name, score: finalScore });
+            scores.sort((a, b) => b.score - a.score);
+            localStorage.setItem('quiz_express_scores', JSON.stringify(scores));
+        }
+    </script>
+</body>
+</html>
