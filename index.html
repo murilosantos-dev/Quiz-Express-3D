@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Express 3D - Maratona DS</title>
+    <title>Quiz Express 3D</title>
     <link rel="icon" type="image/png" href="image-removebg-preview.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,13 +52,6 @@
         .glow-title {
             text-shadow: 0 0 15px rgba(236, 72, 153, 0.8), 0 0 30px rgba(59, 130, 246, 0.8);
         }
-        @keyframes spinRing {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .combo-ring {
-            animation: spinRing 1s linear infinite;
-        }
     </style>
 </head>
 <body class="text-white">
@@ -89,15 +82,9 @@
                     <span class="text-sm text-slate-400">Pontos:</span>
                     <span id="score-display" class="text-xl font-bold text-pink-400">0</span>
                 </div>
-                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3 relative">
+                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3">
                     <span class="text-sm text-slate-400">Combo:</span>
-                    <div class="flex items-center gap-1.5">
-                        <span id="combo-display" class="text-xl font-bold text-yellow-400">0x</span>
-                        <div id="combo-timer-container" class="hidden relative w-5 h-5 flex items-center justify-center" title="Tempo para manter o combo!">
-                            <div class="absolute inset-0 border-2 border-yellow-500/30 rounded-full"></div>
-                            <div id="combo-spinner" class="absolute inset-0 border-2 border-yellow-400 border-t-transparent rounded-full combo-ring"></div>
-                        </div>
-                    </div>
+                    <span id="combo-display" class="text-xl font-bold text-yellow-400">0x</span>
                 </div>
             </div>
         </header>
@@ -223,4 +210,421 @@
             new THREE.BoxGeometry(1.2, 1.2, 1.2),
             new THREE.SphereGeometry(0.8, 32, 32),
             new THREE.ConeGeometry(0.8, 1.5, 32),
-            new THREE.
+            new THREE.DodecahedronGeometry(0.9)
+        ];
+
+        let currentThemeColorHex = 0x3b82f6;
+        const material = new THREE.MeshStandardMaterial({
+            color: currentThemeColorHex,
+            roughness: 0.3,
+            metalness: 0.8,
+            wireframe: false
+        });
+
+        const shapes = [];
+        for (let i = 0; i < 35; i++) {
+            const geom = geometries[Math.floor(Math.random() * geometries.length)];
+            const mesh = new THREE.Mesh(geom, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 35,
+                (Math.random() - 0.5) * 35,
+                (Math.random() - 0.5) * 35 - 10
+            );
+            mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+            mesh.userData = {
+                rotSpeedX: (Math.random() - 0.5) * 0.01,
+                rotSpeedY: (Math.random() - 0.5) * 0.01,
+                floatSpeed: Math.random() * 0.02 + 0.01
+            };
+            scene.add(mesh);
+            shapes.push(mesh);
+        }
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0xffffff, 2);
+        pointLight.position.set(10, 15, 10);
+        scene.add(pointLight);
+
+        camera.position.z = 15;
+
+        function animateScene() {
+            requestAnimationFrame(animateScene);
+            shapes.forEach(shape => {
+                shape.rotation.x += shape.userData.rotSpeedX;
+                shape.rotation.y += shape.userData.rotSpeedY;
+                shape.position.y += Math.sin(Date.now() * 0.002 * shape.userData.floatSpeed) * 0.01;
+            });
+            renderer.render(scene, camera);
+        }
+        animateScene();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function changeThemeColor(colorHex, btnElement) {
+            currentThemeColorHex = colorHex;
+            material.color.setHex(colorHex);
+            document.querySelectorAll('.theme-btn').forEach(b => {
+                b.classList.remove('border-white', 'ring-2', 'ring-blue-500/50');
+                b.classList.add('border-transparent');
+            });
+            btnElement.classList.remove('border-transparent');
+            btnElement.classList.add('border-white', 'ring-2', 'ring-blue-500/50');
+        }
+
+        let selectedDifficulty = 'medio';
+        function selectDifficulty(diff, btnElement) {
+            selectedDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(b => {
+                b.className = "interactive py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold transition diff-btn text-slate-300";
+            });
+            if (diff === 'facil') {
+                btnElement.className = "interactive py-2 bg-emerald-600/30 border border-emerald-400 rounded-xl text-xs font-bold text-emerald-300 transition diff-btn";
+            } else if (diff === 'medio') {
+                btnElement.className = "interactive py-2 bg-cyan-600/30 border border-cyan-400 rounded-xl text-xs font-bold text-cyan-300 transition diff-btn";
+            } else {
+                btnElement.className = "interactive py-2 bg-red-600/30 border border-red-400 rounded-xl text-xs font-bold text-red-300 transition diff-btn";
+            }
+        }
+
+        const questionBank = {
+            facil: [
+                { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de futebol em campo por time?", options: ["7", "9", "11", "12"], answer: 2 },
+                { theme: "Filmes / Séries", q: "Na animação 'Toy Story', qual é o nome do caubói que é o brinquedo favorito do Andy?", options: ["Buzz Lightyear", "Woody", "Rex", "Slinky"], answer: 1 },
+                { theme: "Jogos", q: "Qual personagem mascote da Nintendo veste macacão vermelho e resgata a Princesa Peach?", options: ["Sonic", "Luigi", "Mario", "Link"], answer: 2 },
+                { theme: "Países", q: "Em qual país está localizada a famosa torre Eiffel?", options: ["Itália", "França", "Espanha", "Reino Unido"], answer: 1 },
+                { theme: "Comida", q: "Qual país é o berço tradicional da massa de pizza?", options: ["Itália", "México", "Japão", "Brasil"], answer: 0 },
+                { theme: "Matemática", q: "Quanto é 10 mais 15?", options: ["20", "25", "30", "35"], answer: 1 },
+                { theme: "História", q: "Em que ano ocorreu a proclamação da Independência do Brasil?", options: ["1500", "1822", "1889", "1930"], answer: 1 },
+                { theme: "Desenhos", q: "Qual é o nome da esponja amarela que mora num abacaxi sob o mar?", options: ["Patrick", "Lula Molusco", "Bob Esponja", "Sr. Sirigueijo"], answer: 2 },
+                { theme: "Músicas", q: "Qual instrumento de teclas e cordas internas é muito comum em concertos?", options: ["Violão", "Piano", "Flauta", "Bateria"], answer: 1 },
+                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML cria um link ou hiperlink?", options: ["<link>", "<a>", "<href>", "<url>"], answer: 1 }
+            ],
+            medio: [
+                { theme: "Esportes", q: "Qual país conquistou o pentacampeonato mundial de futebol em 2002?", options: ["Alemanha", "Brasil", "Itália", "França"], answer: 1 },
+                { theme: "Filmes / Séries", q: "Na série 'Stranger Things', qual é o nome da cidade fictícia dos eventos misteriosos?", options: ["Gotham", "Hawkins", "Riverdale", "Springfield"], answer: 1 },
+                { theme: "Jogos", q: "Qual jogo sandbox de blocos mundialmente famoso foi criado por Markus 'Notch' Persson?", options: ["Minecraft", "Roblox", "Terraria", "Fortnite"], answer: 0 },
+                { theme: "Países", q: "Qual é o maior país do mundo em extensão territorial?", options: ["Canadá", "China", "Estados Unidos", "Rússia"], answer: 3 },
+                { theme: "Comida", q: "Qual ingrediente principal compõe a tradicional culinária japonesa chamada Sushi?", options: ["Batata frita", "Arroz e peixe cru", "Massa de trigo", "Feijão preto"], answer: 1 },
+                { theme: "Matemática", q: "Qual é o valor da raiz quadrada exata de 144?", options: ["10", "12", "14", "16"], answer: 1 },
+                { theme: "História", q: "Qual império antigo construiu a imensa estrutura defensiva chamada Grande Muralha?", options: ["Império Romano", "Império Persa", "Império Chinês", "Império Grego"], answer: 2 },
+                { theme: "Desenhos", q: "Em 'Os Simpsons', qual é o nome da caçula da família que chupa chupeta?", options: ["Bart", "Lisa", "Maggie", "Marge"], answer: 2 },
+                { theme: "Músicas", q: "Qual banda britânica gravou o sucesso mundial 'Bohemian Rhapsody'?", options: ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"], answer: 1 },
+                { theme: "Desenvolvimento de Sistemas", q: "Em CSS, qual propriedade altera a cor de fundo de um elemento?", options: ["color", "font-color", "background-color", "bg-style"], answer: 2 }
+            ],
+            dificil: [
+                { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de basquete em quadra por time?", options: ["5", "6", "7", "11"], answer: 0 },
+                { theme: "Filmes / Séries", q: "Qual o nome do vilão cibernético mascarado e pai de Luke Skywalker em Star Wars?", options: ["Han Solo", "Voldemort", "Darth Vader", "Thanos"], answer: 2 },
+                { theme: "Jogos", q: "Em qual jogo da franquia Zelda o Link viaja no tempo através da Ocarina of Time?", options: ["Breath of the Wild", "Ocarina of Time", "Majora's Mask", "Twilight Princess"], answer: 1 },
+                { theme: "Países", q: "Qual é a capital da Austrália, frequentemente confundida com Sydney ou Melbourne?", options: ["Sydney", "Melbourne", "Canberra", "Brisbane"], answer: 2 },
+                { theme: "Comida", q: "De qual país é originário o prato tradicional chamado Paella?", options: ["México", "Espanha", "Portugal", "Argentina"], answer: 1 },
+                { theme: "Matemática", q: "Quanto é 15% de 200?", options: ["20", "25", "30", "35"], answer: 2 },
+                { theme: "História", q: "Em que ano teve início a Revolução Francesa com a queda da Bastilha?", options: ["1789", "1815", "1750", "1848"], answer: 0 },
+                { theme: "Desenhos", q: "Quem é o criador da clássica série animada 'Bob Esponja Calça Quadrada'?", options: ["Matt Groening", "Stephen Hillenburg", "Seth MacFarlane", "Craig McCracken"], answer: 1 },
+                { theme: "Músicas", q: "Qual instrumento de cordas possui quatro cordas tradicionais e é essencial em orquestras clássicas?", options: ["Violino", "Guitarra elétrica", "Piano", "Flauta"], answer: 0 },
+                { theme: "Desenvolvimento de Sistemas", q: "O que a sigla HTML significa corretamente no desenvolvimento web?", options: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyper Transfer Main Language", "Home Tool Multi Language"], answer: 0 }
+            ]
+        };
+
+        let audioCtx = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playTone(freq, startOffset, duration, type, volume) {
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const startTime = ctx.currentTime + startOffset;
+
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, startTime);
+
+            gain.gain.setValueAtTime(0.0001, startTime);
+            gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration + 0.05);
+        }
+
+        function playCorrectSound() {
+            playTone(523.25, 0.00, 0.15, 'sine', 0.25);
+            playTone(659.25, 0.10, 0.15, 'sine', 0.25);
+            playTone(783.99, 0.20, 0.30, 'sine', 0.25);
+        }
+
+        function playWrongSound() {
+            playTone(220.00, 0.00, 0.20, 'sawtooth', 0.18);
+            playTone(155.56, 0.15, 0.35, 'sawtooth', 0.18);
+        }
+
+        let playerName = "";
+        let score = 0;
+        let combo = 0;
+        let timeLeft = 60;
+        let timerInterval = null;
+        let currentQuestion = null;
+        let usedQuestions = [];
+        let lastQuestionIndex = -1;
+
+        const comboWords = ["Incrível!", "Muito Bom!", "Perfeito!", "Show!", "Excelente!", "Mandou Bem!"];
+        const comboColors = ["#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
+
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            playerName = nameInput !== "" ? nameInput : "Jogador Anônimo";
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('stats-bar').classList.remove('hidden');
+            document.getElementById('game-title-container').classList.add('scale-75', 'origin-left', 'transition-transform');
+
+            const diffBadge = document.getElementById('difficulty-badge');
+            if(selectedDifficulty === 'facil') {
+                diffBadge.innerText = "Nível Fácil";
+                diffBadge.className = "px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            } else if(selectedDifficulty === 'medio') {
+                diffBadge.innerText = "Nível Médio";
+                diffBadge.className = "px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            } else {
+                diffBadge.innerText = "Nível Difícil";
+                diffBadge.className = "px-3 py-1 bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold rounded-full uppercase tracking-widest";
+            }
+
+            score = 0;
+            combo = 0;
+            timeLeft = 60;
+            usedQuestions = [];
+            lastQuestionIndex = -1;
+            updateStats();
+
+            startTimer();
+            loadNextQuestion();
+        }
+
+        // Função de Sair corrigida e fechada corretamente
+        function exitGame() {
+            if (confirm("Deseja realmente sair do jogo?")) {
+                window.close();
+                alert("Você já pode fechar esta aba com segurança.");
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateStats();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function updateStats() {
+            document.getElementById('timer-display').innerText = timeLeft + 's';
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('combo-display').innerText = combo + 'x';
+        }
+
+        function loadNextQuestion() {
+            const list = questionBank[selectedDifficulty];
+            if (usedQuestions.length >= list.length) {
+                usedQuestions = [];
+            }
+
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * list.length);
+            } while (usedQuestions.includes(randomIndex) || randomIndex === lastQuestionIndex);
+
+            lastQuestionIndex = randomIndex;
+            usedQuestions.push(randomIndex);
+            currentQuestion = list[randomIndex];
+
+            document.getElementById('question-theme-tag').innerText = currentQuestion.theme;
+            document.getElementById('question-text').innerText = currentQuestion.q;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            currentQuestion.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = "interactive w-full py-3 px-4 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 hover:border-cyan-500/50 rounded-xl font-medium text-left transition flex items-center justify-between text-sm md:text-base";
+                btn.innerHTML = `<span>${optText}</span>`;
+                btn.onclick = () => selectOption(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIndex, btnElement) {
+            const buttons = document.getElementById('options-container').querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            const isCorrect = (selectedIndex === currentQuestion.answer);
+
+            if (isCorrect) {
+                playCorrectSound();
+                combo++;
+                score += 10 * combo;
+                btnElement.classList.add('bg-emerald-600/40', 'border-emerald-500', 'text-emerald-200');
+                showComboFeedback();
+            } else {
+                playWrongSound();
+                combo = 0;
+                btnElement.classList.add('bg-red-600/40', 'border-red-500', 'text-red-200');
+                buttons[currentQuestion.answer].classList.add('bg-emerald-600/40', 'border-emerald-500', 'text-emerald-200');
+            }
+
+            updateStats();
+
+            setTimeout(() => {
+                if (timeLeft > 0) {
+                    loadNextQuestion();
+                }
+            }, 800);
+        }
+
+        function showComboFeedback() {
+            if (combo < 2) return;
+            const container = document.getElementById('floating-words-container');
+            const word = comboWords[Math.floor(Math.random() * comboWords.length)];
+            const color = comboColors[Math.floor(Math.random() * comboColors.length)];
+
+            const el = document.createElement('div');
+            el.className = 'combo-floating-text text-xl md:text-3xl arcade-font';
+            el.style.color = color;
+            el.innerText = `${word} +${combo}x`;
+            el.style.left = (Math.random() * 60 + 20) + '%';
+            el.style.top = (Math.random() * 40 + 30) + '%';
+
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        function endGame() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('stats-bar').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            document.getElementById('final-score-message').innerText = `Parabéns seus pontos acumulados foi ${score}`;
+            saveToLeaderboard(playerName, score, selectedDifficulty);
+        }
+
+        function restartGame() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            startGame();
+        }
+
+        function returnToMenu() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('stats-bar').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            document.getElementById('game-title-container').classList.remove('scale-75', 'origin-left');
+        }
+
+        // --- RANKING ONLINE / LOCAL ---
+        const BIN_ID = "65a1261bdc74654018981241";
+        const API_KEY = "$2a$10$T8Vq00jX2W5qQYF4rD0t9u4jQ88mE6c29qB1tXvV7K5g8HwD0YcK2";
+
+        async function saveToLeaderboard(name, pts, diff) {
+            const entry = { name, score: pts, diff, date: new Date().toLocaleDateString('pt-BR') };
+            try {
+                let list = await fetchLeaderboardData();
+                list.push(entry);
+                list.sort((a, b) => b.score - a.score);
+                list = list.slice(0, 15);
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                    body: JSON.stringify(list)
+                });
+            } catch (e) {
+                let local = JSON.parse(localStorage.getItem('quiz_ds_rank') || '[]');
+                local.push(entry);
+                local.sort((a, b) => b.score - a.score);
+                localStorage.setItem('quiz_ds_rank', JSON.stringify(local.slice(0, 15)));
+            }
+        }
+
+        async function fetchLeaderboardData() {
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                const data = await res.json();
+                return data.record || [];
+            } catch (e) {
+                return JSON.parse(localStorage.getItem('quiz_ds_rank') || '[]');
+            }
+        }
+
+        async function openLeaderboard() {
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('leaderboard-screen').classList.remove('hidden');
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = '<p class="text-slate-400 text-sm">Carregando placar...</p>';
+
+            const data = await fetchLeaderboardData();
+            listEl.innerHTML = '';
+
+            if (data.length === 0) {
+                listEl.innerHTML = '<p class="text-slate-400 text-sm">Nenhum recorde registrado ainda.</p>';
+                return;
+            }
+
+            data.forEach((item, idx) => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700 text-sm";
+                row.innerHTML = `
+                    <span class="font-bold text-slate-300">#${idx + 1} ${escapeHtml(item.name)}</span>
+                    <span class="text-cyan-400 font-extrabold">${item.score} pts <small class="text-slate-400 font-normal">(${item.diff})</small></span>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        }
+
+        async function resetLeaderboard() {
+            if (confirm("Deseja realmente zerar o ranking global?")) {
+                try {
+                    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                        body: JSON.stringify([])
+                    });
+                } catch(e) {}
+                localStorage.removeItem('quiz_ds_rank');
+                openLeaderboard();
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
