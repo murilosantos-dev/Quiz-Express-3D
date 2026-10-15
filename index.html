@@ -52,6 +52,14 @@
         .glow-title {
             text-shadow: 0 0 15px rgba(236, 72, 153, 0.8), 0 0 30px rgba(59, 130, 246, 0.8);
         }
+        /* Animação do anel giratório do combo */
+        @keyframes spinRing {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .combo-ring {
+            animation: spinRing 1s linear infinite;
+        }
     </style>
 </head>
 <body class="text-white">
@@ -82,9 +90,16 @@
                     <span class="text-sm text-slate-400">Pontos:</span>
                     <span id="score-display" class="text-xl font-bold text-pink-400">0</span>
                 </div>
-                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3">
+                <div class="bg-slate-800/80 border border-slate-700 px-4 py-2 rounded-xl backdrop-blur-md shadow-lg flex items-center gap-3 relative">
                     <span class="text-sm text-slate-400">Combo:</span>
-                    <span id="combo-display" class="text-xl font-bold text-yellow-400">0x</span>
+                    <div class="flex items-center gap-1.5">
+                        <span id="combo-display" class="text-xl font-bold text-yellow-400">0x</span>
+                        <!-- Indicador visual giratório do tempo limite do combo (apenas médio/difícil) -->
+                        <div id="combo-timer-container" class="hidden relative w-5 h-5 flex items-center justify-center" title="Tempo para manter o combo!">
+                            <div class="absolute inset-0 border-2 border-yellow-500/30 rounded-full"></div>
+                            <div id="combo-spinner" class="absolute inset-0 border-2 border-yellow-400 border-t-transparent rounded-full combo-ring"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -292,7 +307,7 @@
             }
         }
 
-        // --- BANCO DE PERGUNTAS AMPLIADO E ATUALIZADO ---
+        // --- BANCO DE PERGUNTAS AMPLIADO ---
         const questionBank = {
             facil: [
                 { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de futebol em campo por time?", options: ["7", "9", "11", "12"], answer: 2 },
@@ -427,6 +442,11 @@
         let usedQuestions = [];
         let lastQuestionIndex = -1;
 
+        // Controle do tempo limite do combo (Médio = 5s, Difícil = 3s)
+        let comboTimerInterval = null;
+        let comboTimeLeft = 0;
+        let comboMaxTime = 0;
+
         const comboWords = ["Incrível!", "Muito Bom!", "Perfeito!", "Show!", "Excelente!", "Mandou Bem!"];
         const comboColors = ["#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
 
@@ -441,15 +461,20 @@
             document.getElementById('game-title-container').classList.add('scale-75', 'origin-left', 'transition-transform');
 
             const diffBadge = document.getElementById('difficulty-badge');
+            const comboTimerContainer = document.getElementById('combo-timer-container');
+
             if(selectedDifficulty === 'facil') {
                 diffBadge.innerText = "Nível Fácil";
                 diffBadge.className = "px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-full uppercase tracking-widest";
+                comboTimerContainer.classList.add('hidden');
             } else if(selectedDifficulty === 'medio') {
                 diffBadge.innerText = "Nível Médio";
                 diffBadge.className = "px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full uppercase tracking-widest";
+                comboTimerContainer.classList.remove('hidden');
             } else {
                 diffBadge.innerText = "Nível Difícil";
                 diffBadge.className = "px-3 py-1 bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold rounded-full uppercase tracking-widest";
+                comboTimerContainer.classList.remove('hidden');
             }
 
             score = 0;
@@ -457,6 +482,7 @@
             timeLeft = 60;
             usedQuestions = [];
             lastQuestionIndex = -1;
+            clearInterval(comboTimerInterval);
             updateStats();
 
             startTimer();
@@ -477,6 +503,37 @@
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     endGame();
+                }
+            }, 1000);
+        }
+
+        // --- SISTEMA DE TEMPORIZADOR DE COMBO ---
+        function startComboTimer() {
+            if (selectedDifficulty === 'facil' || combo <= 1) {
+                document.getElementById('combo-timer-container').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('combo-timer-container').classList.remove('hidden');
+            
+            // Define o tempo limite: 5 segundos para Médio, 3 segundos para Difícil
+            comboMaxTime = selectedDifficulty === 'medio' ? 5 : 3;
+            comboTimeLeft = comboMaxTime;
+
+            clearInterval(comboTimerInterval);
+            
+            const spinner = document.getElementById('combo-spinner');
+            // Ajusta a velocidade da animação giratória de acordo com o tempo limite
+            spinner.style.animationDuration = `${comboMaxTime}s`;
+
+            comboTimerInterval = setInterval(() => {
+                comboTimeLeft--;
+                if (comboTimeLeft <= 0) {
+                    clearInterval(comboTimerInterval);
+                    // O tempo esgotou! O combo cai para 1x
+                    combo = 1;
+                    updateStats();
+                    document.getElementById('combo-timer-container').classList.add('hidden');
                 }
             }, 1000);
         }
@@ -540,6 +597,9 @@
                 btn.disabled = true;
             }
 
+            // Para o timer de combo atual enquanto processa a resposta
+            clearInterval(comboTimerInterval);
+
             if (selectedIndex === currentQuestion.answer) {
                 combo++;
                 score += 10 + (combo * 3);
@@ -547,6 +607,9 @@
                 btnElement.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
                 playCorrectSound();
                 triggerFloatingWord();
+                
+                // Reinicia o relógio do combo para a próxima pergunta (se médio ou difícil)
+                startComboTimer();
             } else {
                 combo = 0;
                 playWrongSound();
@@ -554,6 +617,7 @@
                 btnElement.classList.add('bg-red-600', 'border-red-500', 'text-white');
                 buttons[currentQuestion.answer].classList.remove('bg-slate-800/90');
                 buttons[currentQuestion.answer].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
+                document.getElementById('combo-timer-container').classList.add('hidden');
             }
 
             updateStats();
@@ -585,6 +649,7 @@
         }
 
         function endGame() {
+            clearInterval(comboTimerInterval);
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('stats-bar').classList.add('hidden');
             document.getElementById('game-over-screen').classList.remove('hidden');
@@ -599,6 +664,7 @@
         }
 
         function returnToMenu() {
+            clearInterval(comboTimerInterval);
             document.getElementById('game-over-screen').classList.add('hidden');
             document.getElementById('menu-screen').classList.remove('hidden');
             document.getElementById('game-title-container').classList.remove('scale-75', 'origin-left');
