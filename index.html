@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz Express 3D</title>
+    <title>Quiz Express 3D - Maratona DS</title>
     <link rel="icon" type="image/png" href="image-removebg-preview.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -102,7 +102,7 @@
                     <input type="text" id="player-name" placeholder="Digite seu nome..." class="w-full px-4 py-2.5 bg-slate-800 border border-slate-600 rounded-xl focus:outline-none focus:border-cyan-400 text-white placeholder-slate-500 font-medium text-sm">
                 </div>
 
-                <!-- Difficulty Selector Restored -->
+                <!-- Difficulty Selector -->
                 <div class="w-full space-y-1 text-left">
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Escolha o Nível:</label>
                     <div class="grid grid-cols-3 gap-2">
@@ -206,7 +206,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // 3D Objects (Floating Geometric Shapes)
         const geometries = [
             new THREE.BoxGeometry(1.2, 1.2, 1.2),
             new THREE.SphereGeometry(0.8, 32, 32),
@@ -241,7 +240,6 @@
             shapes.push(mesh);
         }
 
-        // Lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
 
@@ -251,7 +249,6 @@
 
         camera.position.z = 15;
 
-        // Animation Loop
         function animateScene() {
             requestAnimationFrame(animateScene);
             shapes.forEach(shape => {
@@ -269,7 +266,6 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // --- THEME COLOR SELECTION ---
         function changeThemeColor(colorHex, btnElement) {
             currentThemeColorHex = colorHex;
             material.color.setHex(colorHex);
@@ -281,7 +277,6 @@
             btnElement.classList.add('border-white', 'ring-2', 'ring-blue-500/50');
         }
 
-        // --- DIFFICULTY SELECTION ---
         let selectedDifficulty = 'medio';
         function selectDifficulty(diff, btnElement) {
             selectedDifficulty = diff;
@@ -297,7 +292,7 @@
             }
         }
 
-        // --- GAME DATA & QUESTIONS (General, Cultural, Themes + DS HTML/CSS) ---
+        // --- BANCO DE PERGUNTAS AMPLIADO E ATUALIZADO ---
         const questionBank = {
             facil: [
                 { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de futebol em campo por time?", options: ["7", "9", "11", "12"], answer: 2 },
@@ -310,7 +305,6 @@
                 { theme: "Desenhos", q: "Qual é o nome da esponja amarela que mora num abacaxi sob o mar?", options: ["Patrick", "Lula Molusco", "Bob Esponja", "Sr. Sirigueijo"], answer: 2 },
                 { theme: "Músicas", q: "Qual instrumento de teclas e cordas internas é muito comum em concertos?", options: ["Violão", "Piano", "Flauta", "Bateria"], answer: 1 },
                 { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML cria um link ou hiperlink?", options: ["<link>", "<a>", "<href>", "<url>"], answer: 1 },
-                // --- Novas perguntas (Fácil) ---
                 { theme: "Esportes", q: "Em qual esporte se usa uma raquete e uma bolinha amarela em uma quadra com rede?", options: ["Tênis", "Vôlei", "Natação", "Boxe"], answer: 0 },
                 { theme: "Filmes / Séries", q: "Qual é o nome do leão protagonista do filme 'O Rei Leão'?", options: ["Mufasa", "Simba", "Scar", "Timão"], answer: 1 },
                 { theme: "Jogos", q: "Qual é a cor do mascote Sonic, da SEGA?", options: ["Vermelho", "Verde", "Azul", "Amarelo"], answer: 2 },
@@ -320,7 +314,10 @@
                 { theme: "História", q: "Quem é conhecido como o descobridor do Brasil em 1500?", options: ["Pedro Álvares Cabral", "Cristóvão Colombo", "Dom Pedro I", "Tiradentes"], answer: 0 },
                 { theme: "Desenhos", q: "Qual é o nome do ratinho mais famoso da Disney?", options: ["Jerry", "Mickey", "Stuart Little", "Ratatouille"], answer: 1 },
                 { theme: "Músicas", q: "Quantas cordas tem um violão tradicional?", options: ["4", "5", "6", "8"], answer: 2 },
-                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML é usada para inserir uma imagem?", options: ["<img>", "<image>", "<picture>", "<src>"], answer: 0 }
+                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML é usada para inserir uma imagem?", options: ["<img>", "<image>", "<picture>", "<src>"], answer: 0 },
+                { theme: "Geografia", q: "Qual é o maior oceano da Terra?", options: ["Atlântico", "Pacífico", "Índico", "Ártico"], answer: 1 },
+                { theme: "Tecnologia", q: "Qual empresa desenvolveu o sistema operacional Windows?", options: ["Apple", "Google", "Microsoft", "Linux"], answer: 2 },
+                { theme: "Ciências", q: "Qual gás os seres humanos respiram e é essencial para a vida?", options: ["Gás Carbônico", "Oxigênio", "Nitrogênio", "Hélio"], answer: 1 }
             ],
             medio: [
                 { theme: "Esportes", q: "Qual país conquistou o pentacampeonato mundial de futebol em 2002?", options: ["Alemanha", "Brasil", "Itália", "França"], answer: 1 },
@@ -333,7 +330,6 @@
                 { theme: "Desenhos", q: "Em 'Os Simpsons', qual é o nome da caçula da família que chupa chupeta?", options: ["Bart", "Lisa", "Maggie", "Marge"], answer: 2 },
                 { theme: "Músicas", q: "Qual banda britânica gravou o sucesso mundial 'Bohemian Rhapsody'?", options: ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"], answer: 1 },
                 { theme: "Desenvolvimento de Sistemas", q: "Em CSS, qual propriedade altera a cor de fundo de um elemento?", options: ["color", "font-color", "background-color", "bg-style"], answer: 2 },
-                // --- Novas perguntas (Médio) ---
                 { theme: "Esportes", q: "Em qual país foram realizados os Jogos Olímpicos de 2016?", options: ["China", "Brasil", "Reino Unido", "Japão"], answer: 1 },
                 { theme: "Filmes / Séries", q: "Qual é o nome do bruxo protagonista criado por J.K. Rowling?", options: ["Harry Potter", "Gandalf", "Merlin", "Percy Jackson"], answer: 0 },
                 { theme: "Jogos", q: "Qual é o nome do protagonista da franquia 'The Legend of Zelda'?", options: ["Zelda", "Ganon", "Link", "Epona"], answer: 2 },
@@ -343,7 +339,10 @@
                 { theme: "História", q: "Qual civilização construiu as pirâmides de Gizé?", options: ["Maia", "Egípcia", "Romana", "Asteca"], answer: 1 },
                 { theme: "Desenhos", q: "Qual é o nome do cachorro amigo do Charlie Brown?", options: ["Pluto", "Snoopy", "Scooby-Doo", "Rex"], answer: 1 },
                 { theme: "Músicas", q: "Qual cantor é conhecido como o 'Rei do Pop'?", options: ["Elvis Presley", "Michael Jackson", "Prince", "Freddie Mercury"], answer: 1 },
-                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML é usada para criar o maior título de uma página?", options: ["<title>", "<h6>", "<h1>", "<head>"], answer: 2 }
+                { theme: "Desenvolvimento de Sistemas", q: "Qual tag HTML é usada para criar o maior título de uma página?", options: ["<title>", "<h6>", "<h1>", "<head>"], answer: 2 },
+                { theme: "Geografia", q: "Qual rio cruza a cidade de Paris, na França?", options: ["Tâmisa", "Sena", "Danúbio", "Reno"], answer: 1 },
+                { theme: "Biologia", q: "Qual organela é considerada a 'central energética' (respiração celular) da célula?", options: ["Ribossomo", "Mitocôndria", "Complexo de Golgi", "Núcleo"], answer: 1 },
+                { theme: "Química", q: "Qual é a fórmula química do sal de cozinha?", options: ["H2O", "NaCl", "CO2", "HCl"], answer: 1 }
             ],
             dificil: [
                 { theme: "Esportes", q: "Quantos jogadores titulares compõem uma equipe de basquete em quadra por time?", options: ["5", "6", "7", "11"], answer: 0 },
@@ -356,7 +355,6 @@
                 { theme: "Desenhos", q: "Quem é o criador da clássica série animada 'Bob Esponja Calça Quadrada'?", options: ["Matt Groening", "Stephen Hillenburg", "Seth MacFarlane", "Craig McCracken"], answer: 1 },
                 { theme: "Músicas", q: "Qual instrumento de cordas possui quatro cordas tradicionais e é essencial em orquestras clássicas?", options: ["Violino", "Guitarra elétrica", "Piano", "Flauta"], answer: 0 },
                 { theme: "Desenvolvimento de Sistemas", q: "O que a sigla HTML significa corretamente no desenvolvimento web?", options: ["Hyper Text Markup Language", "High Tech Modern Language", "Hyper Transfer Main Language", "Home Tool Multi Language"], answer: 0 },
-                // --- Novas perguntas (Difícil) ---
                 { theme: "Esportes", q: "Quantos anéis entrelaçados formam o símbolo olímpico?", options: ["4", "5", "6", "7"], answer: 1 },
                 { theme: "Filmes / Séries", q: "Quem dirigiu o filme 'Titanic' (1997)?", options: ["Steven Spielberg", "James Cameron", "Christopher Nolan", "Ridley Scott"], answer: 1 },
                 { theme: "Jogos", q: "Qual empresa criou o jogo 'Pac-Man'?", options: ["Nintendo", "SEGA", "Namco", "Atari"], answer: 2 },
@@ -366,11 +364,14 @@
                 { theme: "História", q: "Em que ano o homem pisou na Lua pela primeira vez?", options: ["1959", "1965", "1969", "1975"], answer: 2 },
                 { theme: "Desenhos", q: "Qual é o nome do robô protagonista do filme da Pixar lançado em 2008 sobre um robô lixeiro?", options: ["R2-D2", "WALL-E", "Baymax", "Bender"], answer: 1 },
                 { theme: "Músicas", q: "Qual compositor alemão escreveu a 9ª Sinfonia, mesmo tendo ficado surdo?", options: ["Mozart", "Bach", "Beethoven", "Vivaldi"], answer: 2 },
-                { theme: "Desenvolvimento de Sistemas", q: "Em CSS, qual propriedade controla o espaço interno entre o conteúdo e a borda de um elemento?", options: ["margin", "padding", "spacing", "border-gap"], answer: 1 }
+                { theme: "Desenvolvimento de Sistemas", q: "Em CSS, qual propriedade controla o espaço interno entre o conteúdo e a borda de um elemento?", options: ["margin", "padding", "spacing", "border-gap"], answer: 1 },
+                { theme: "Física", q: "Quem formulou a Teoria da Relatividade Geral?", options: ["Isaac Newton", "Albert Einstein", "Galileu Galilei", "Nikola Tesla"], answer: 1 },
+                { theme: "Astronomia", q: "Qual é o maior planeta do Sistema Solar?", options: ["Saturno", "Júpiter", "Netuno", "Marte"], answer: 1 },
+                { theme: "Desenvolvimento de Sistemas", q: "Qual seletor CSS é utilizado especificamente para selecionar um elemento pelo seu ID?", options: [".", "#", "*", "&"], answer: 1 }
             ]
         };
 
-        // --- SONS (Web Audio API, sem arquivos externos) ---
+        // --- SONS (Web Audio API) ---
         let audioCtx = null;
 
         function getAudioCtx() {
@@ -405,14 +406,12 @@
             osc.stop(startTime + duration + 0.05);
         }
 
-        // Som de acerto: três notas subindo (alegre)
         function playCorrectSound() {
-            playTone(523.25, 0.00, 0.15, 'sine', 0.25); // Dó
-            playTone(659.25, 0.10, 0.15, 'sine', 0.25); // Mi
-            playTone(783.99, 0.20, 0.30, 'sine', 0.25); // Sol
+            playTone(523.25, 0.00, 0.15, 'sine', 0.25);
+            playTone(659.25, 0.10, 0.15, 'sine', 0.25);
+            playTone(783.99, 0.20, 0.30, 'sine', 0.25);
         }
 
-        // Som de erro: duas notas descendo (grave)
         function playWrongSound() {
             playTone(220.00, 0.00, 0.20, 'sawtooth', 0.18);
             playTone(155.56, 0.15, 0.35, 'sawtooth', 0.18);
@@ -428,7 +427,6 @@
         let usedQuestions = [];
         let lastQuestionIndex = -1;
 
-        // Combo feedback words
         const comboWords = ["Incrível!", "Muito Bom!", "Perfeito!", "Show!", "Excelente!", "Mandou Bem!"];
         const comboColors = ["#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
 
@@ -442,7 +440,6 @@
             document.getElementById('stats-bar').classList.remove('hidden');
             document.getElementById('game-title-container').classList.add('scale-75', 'origin-left', 'transition-transform');
 
-            // Update difficulty badge on quiz screen
             const diffBadge = document.getElementById('difficulty-badge');
             if(selectedDifficulty === 'facil') {
                 diffBadge.innerText = "Nível Fácil";
@@ -493,12 +490,10 @@
         function loadNextQuestion() {
             const currentBank = questionBank[selectedDifficulty];
 
-            // Quando todas já foram usadas, reinicia a lista
             if (usedQuestions.length >= currentBank.length) {
                 usedQuestions = [];
             }
 
-            // Perguntas ainda não usadas (e que não sejam a última exibida)
             let availableIndexes = currentBank
                 .map((_, idx) => idx)
                 .filter(idx => !usedQuestions.includes(idx) && idx !== lastQuestionIndex);
@@ -523,7 +518,6 @@
                 const btn = document.createElement('button');
                 btn.className = "interactive w-full py-3 px-4 bg-slate-800/90 hover:bg-slate-700 text-slate-200 font-medium rounded-xl border border-slate-700 transition transform hover:scale-[1.01] active:scale-[0.99] text-left flex items-center justify-between";
 
-                // textContent exibe <a>, <link>, <img> etc. como texto (sem virar tag HTML)
                 const textSpan = document.createElement('span');
                 textSpan.textContent = opt;
 
@@ -533,49 +527,44 @@
 
                 btn.appendChild(textSpan);
                 btn.appendChild(numSpan);
-                btn.onclick = () => checkAnswer(idx);
+                btn.onclick = () => checkAnswer(idx, btn);
                 optionsContainer.appendChild(btn);
             });
         }
 
-        function checkAnswer(selectedIndex) {
+        function checkAnswer(selectedIndex, btnElement) {
             const optionsContainer = document.getElementById('options-container');
             const buttons = optionsContainer.getElementsByTagName('button');
 
+            for (let btn of buttons) {
+                btn.disabled = true;
+            }
+
             if (selectedIndex === currentQuestion.answer) {
                 combo++;
-                score += 10 + (combo * 2);
-                buttons[selectedIndex].classList.remove('bg-slate-800/90');
-                buttons[selectedIndex].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
-                
-                // Som de acerto
+                score += 10 + (combo * 3);
+                btnElement.classList.remove('bg-slate-800/90');
+                btnElement.classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
                 playCorrectSound();
-
-                // Trigger floating combo word with random position
                 triggerFloatingWord();
             } else {
                 combo = 0;
-                // Som de erro
                 playWrongSound();
-                buttons[selectedIndex].classList.remove('bg-slate-800/90');
-                buttons[selectedIndex].classList.add('bg-red-600', 'border-red-500', 'text-white');
+                btnElement.classList.remove('bg-slate-800/90');
+                btnElement.classList.add('bg-red-600', 'border-red-500', 'text-white');
                 buttons[currentQuestion.answer].classList.remove('bg-slate-800/90');
                 buttons[currentQuestion.answer].classList.add('bg-emerald-600', 'border-emerald-500', 'text-white');
             }
 
             updateStats();
 
-            // Disable all buttons temporarily
-            for (let btn of buttons) {
-                btn.disabled = true;
-            }
-
             setTimeout(() => {
-                loadNextQuestion();
-            }, 1000);
+                if (timeLeft > 0) {
+                    loadNextQuestion();
+                }
+            }, 850);
         }
 
-        // --- FLOATING WORDS ANIMATION ---
         function triggerFloatingWord() {
             const container = document.getElementById('floating-words-container');
             const wordText = comboWords[Math.floor(Math.random() * comboWords.length)];
@@ -586,29 +575,21 @@
             el.innerText = `${wordText} +${combo}x`;
             el.style.color = colorHex;
 
-            // Random horizontal and vertical starting positions across the screen
-            const randomX = Math.random() * 70 + 15; // 15% to 85% width
-            const randomY = Math.random() * 40 + 30; // 30% to 70% height
+            const randomX = Math.random() * 70 + 15;
+            const randomY = Math.random() * 40 + 30;
             el.style.left = `${randomX}%`;
             el.style.top = `${randomY}%`;
 
             container.appendChild(el);
-
-            // Remove after animation finishes (3 seconds)
-            setTimeout(() => {
-                el.remove();
-            }, 3000);
+            setTimeout(() => { el.remove(); }, 3000);
         }
 
-        // --- END GAME & LEADERBOARD ---
         function endGame() {
             document.getElementById('quiz-screen').classList.add('hidden');
             document.getElementById('stats-bar').classList.add('hidden');
             document.getElementById('game-over-screen').classList.remove('hidden');
 
             document.getElementById('final-score-message').innerText = `Parabéns ${playerName}, seus pontos acumulados foi ${score}!`;
-
-            // Save to Online Global Leaderboard
             saveScoreToLeaderboard(playerName, score);
         }
 
@@ -641,7 +622,6 @@
             }
         }
 
-        // --- JSONBIN GLOBAL LEADERBOARD INTEGRATION ---
         async function fetchLeaderboard() {
             const listEl = document.getElementById('leaderboard-list');
             listEl.innerHTML = '<p class="text-slate-400 text-sm">Carregando placar global...</p>';
